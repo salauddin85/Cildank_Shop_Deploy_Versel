@@ -37,7 +37,7 @@ import cloudinary
 
 DEBUG = True  # ডেভেলপমেন্টের জন্য
 CORS_ALLOW_ALL_ORIGINS = True  # শুধুমাত্র ডেভেলপমেন্টে ব্যবহারের জন্য
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["127.0.0.1",".vercel.app"]
 # LOGIN_URL = "https://cildank-shop.onrender.com/login.html"  # প্রয়োজন অনুযায়ী
 CSRF_TRUSTED_ORIGINS = ['https://cildank-shop.onrender.com']
 
@@ -45,6 +45,7 @@ CSRF_TRUSTED_ORIGINS = ['https://cildank-shop.onrender.com']
 # Application definition
 
 INSTALLED_APPS = [
+    'whitenoise.runserver_nostatic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -93,7 +95,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'Cildank_Cloth_Shop.wsgi.application'
+WSGI_APPLICATION = 'Cildank_Cloth_Shop.wsgi.app'
 
 
 # Database
@@ -107,24 +109,24 @@ WSGI_APPLICATION = 'Cildank_Cloth_Shop.wsgi.application'
 # }
 
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': env("DB_NAME"),
-#         'USER': env("DB_USER"),
-#         'PASSWORD': env("DB_PASSWORD"),
-#         'HOST': env("DB_HOST"),
-#         'PORT': env("DB_PORT"),
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        # Replace this value with your local database's connection string.
-        default='postgresql://cildank_shop_user:q0ylVYIQZVKhoABeUfJcQXGW2sZkiJz9@dpg-cr66mortq21c73ba9ifg-a.oregon-postgres.render.com/cildank_shop',
-        
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': env("DB_NAME"),
+        'USER': env("DB_USER"),
+        'PASSWORD': env("DB_PASSWORD"),
+        'HOST': env("DB_HOST"),
+        'PORT': env("DB_PORT"),
+    }
 }
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         # Replace this value with your local database's connection string.
+#         default='postgresql://cildank_shop_user:q0ylVYIQZVKhoABeUfJcQXGW2sZkiJz9@dpg-cr66mortq21c73ba9ifg-a.oregon-postgres.render.com/cildank_shop',
+        
+#     )
+# }
 
 
 # Password validation
@@ -170,6 +172,7 @@ EMAIL_HOST_PASSWORD = env("EMAIL_PASSWORD")
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT= BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

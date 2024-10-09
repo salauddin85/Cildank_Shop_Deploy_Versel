@@ -1,0 +1,14 @@
+{
+    "builds": [{
+        "src": "Cildank_Cloth_Shop/wsgi.py",
+        "use": "@vercel/python",
+        "config": {
+            "maxLambdaSize": "15mb",
+            "runtime": "python3.11.3"
+        }
+    }],
+    "routes": [{
+        "src": "*/(.*)",
+        "dest": "Cildank_Cloth_Shop/wsgi.py"
+    }]
+}
