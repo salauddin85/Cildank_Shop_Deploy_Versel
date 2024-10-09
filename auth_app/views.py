@@ -32,7 +32,7 @@ class UserRegistrationApiView(APIView):
             print("token", token)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             print('Uid', uid)
-            confirm_link = f"https://cildank-shop.onrender.com/auth/active/{uid}/{token}/"
+            confirm_link = f"https://cildank-shop-deploy-versel.vercel.app/auth/active/{uid}/{token}/"
             email_subject = "Confirm Your Email"
             email_body = render_to_string("confirm_email.html", {"confirm_link": confirm_link})
             email = EmailMultiAlternatives(email_subject, '', to=[user.email])
