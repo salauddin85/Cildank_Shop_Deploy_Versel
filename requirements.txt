@@ -21,7 +21,7 @@ MouseInfo
 mysql-connector-python
 packaging
 pillow
-psycopg2
+
 psycopg2-binary
 PyAutoGUI
 PyGetWindow
