@@ -100,11 +100,12 @@ class UserLogoutView(APIView):
 #         logout(request)
 #         return redirect('login')
 
-
 class AccountView(viewsets.ModelViewSet):
-    queryset = Account.objects.all()
     serializer_class = serializers.AccountSerializer
 
+    def get_queryset(self):
+        # শুধুমাত্র লগ-ইন করা ব্যবহারকারীর অ্যাকাউন্ট ফেরত দেয়
+        return Account.objects.filter(user=self.request.user)
 
 
 
