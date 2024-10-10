@@ -37,13 +37,12 @@ class Review(models.Model):
     products = models.ForeignKey(Product,on_delete=models.CASCADE,null=True,blank=True)
     body = models.TextField()
     name = models.CharField(max_length=50)
-    image = CloudinaryField('Product_images')
+    image = CloudinaryField('image', null=True, blank=True)  # CloudinaryField ব্যবহার করা হচ্ছে
     created = models.DateTimeField(auto_now_add = True)
     rating = models.CharField(choices = STAR_CHOICES, max_length = 10)
     
     def __str__(self):
         return f"Reviewer: {self.reviewer.first_name} {self.reviewer.last_name} "
-
 
 
 

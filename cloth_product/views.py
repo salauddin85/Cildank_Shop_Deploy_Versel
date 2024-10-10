@@ -11,7 +11,8 @@ from cloth_category.models import Category,Sub_Category
 from rest_framework.views import APIView
 from auth_app.models import Account
 from django.http import Http404
-
+# from rest_framework.parsers import MultiPartParser, FormParser
+import cloudinary.uploader
 
 class ProductPagination(pagination.PageNumberPagination):
     page_size = 12 # items per page
@@ -208,13 +209,12 @@ class WishlistViewset(viewsets.ModelViewSet):
     
 
 
-from rest_framework.parsers import MultiPartParser, FormParser
+
 
 
 class ReviewViewset(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     queryset = Review.objects.all()
-    parser_classes = [MultiPartParser, FormParser]  # ফাইল ও ফর্ম ডাটা হ্যান্ডেল করার জন্য
 
     @action(detail=False, methods=['post'], url_path='add_review')
     def add_review(self, request, id):
@@ -234,12 +234,19 @@ class ReviewViewset(viewsets.ModelViewSet):
             account = Account.objects.get(user=request.user)
             name = f"{account.user.first_name} {account.user.last_name}"
 
+            # Handle image upload to Cloudinary
+            image_url = None
+            image_file = request.FILES.get('image', None)
+            if image_file:
+                cloudinary_response = cloudinary.uploader.upload(image_file)
+                image_url = cloudinary_response['secure_url']  # Get the secure URL from Cloudinary
+
             # Create the review instance with all fields
             review_data = {
-                'products': product.id,  # Single product ID for ForeignKey
+                'products': product.id,
                 'name': name,
                 'rating': request.data.get('rating'),
-                'image': request.FILES.get('image', None),  # Image ফাইলটি request.FILES থেকে নেবে
+                'image': image_url,  # Cloudinary থেকে প্রাপ্ত URL
                 'body': request.data.get('body', '')
             }
 
@@ -253,7 +260,7 @@ class ReviewViewset(viewsets.ModelViewSet):
             return Response("Review added successfully.", status=status.HTTP_201_CREATED)
         except Account.DoesNotExist:
             return Response("Unknown Account Holder", status=status.HTTP_404_NOT_FOUND)
-    
+
     # Perform Create function override
     def perform_create(self, serializer, name, products):
         serializer.save(reviewer=self.request.user, name=name, products=products)
