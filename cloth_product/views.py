@@ -208,102 +208,14 @@ class WishlistViewset(viewsets.ModelViewSet):
     
 
 
-
-
-
-
-
-# class ReviewViewset(viewsets.ModelViewSet):
-#     queryset = Review.objects.all()
-#     serializer_class = ReviewSerializer
-#     permission_classes = [IsAuthenticatedOrReadOnly]
-
-#     def perform_create(self, serializer, **kwargs):
-#         # Save the instance with additional fields
-#         serializer.save(reviewer=self.request.user, **kwargs)
-
-#     @action(detail=False, methods=['post'], url_path='add_review')
-#     def add_review(self, request, id):
-#         # Get the product instance
-#         try:
-#             product = Product.objects.get(id=id)
-#         except Product.DoesNotExist:
-#             return Response("Product does not exist.", status=status.HTTP_404_NOT_FOUND)
-
-#         # Check if a review already exists for this product by the current user
-#         review_exists = Review.objects.filter(products=product, reviewer=request.user).exists()
-#         if review_exists:
-#             return Response("This product review already exists.", status=status.HTTP_400_BAD_REQUEST)
-
-#         # Get the account of the user
-#         try:
-#             account = Account.objects.get(user=request.user)
-#             name = f"{account.user.first_name} {account.user.last_name}"
-
-#             # Create the review instance with all fields
-#             review_data = {
-#                 'products': product.id,  # Single product ID for ForeignKey
-#                 'name': name,
-#                 'rating': request.data.get('rating'),
-#                 'image': request.data.get('image', None),
-#                 'body': request.data.get('body', '')
-#             }
-
-#             # Create and validate the serializer
-#             serializer = self.get_serializer(data=review_data)
-#             serializer.is_valid(raise_exception=True)
-
-#             # Save the review using perform_create with additional fields
-#             self.perform_create(serializer, name=name, products=product)
-
-#             return Response("Review added successfully.", status=status.HTTP_201_CREATED)
-#         except Account.DoesNotExist:
-#             return Response("Unknown Account Holder", status=status.HTTP_404_NOT_FOUND)  
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 class ReviewViewset(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    lookup_field = 'id'
+    queryset = Review.objects.all()
+    parser_classes = [MultiPartParser, FormParser]  # ফাইল ও ফর্ম ডাটা হ্যান্ডেল করার জন্য
 
-    def perform_create(self, serializer, **kwargs):
-        # Save the instance with additional fields
-        serializer.save(reviewer=self.request.user, **kwargs)
-
-    @action(detail=False, methods=['get'], url_path='reviews_by_product')
-    def reviews_by_product(self, request, product_id):
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
-
-        reviews = Review.objects.filter(products=product)
-        serializer = self.get_serializer(reviews, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-  
     @action(detail=False, methods=['post'], url_path='add_review')
     def add_review(self, request, id):
         # Get the product instance
@@ -327,7 +239,7 @@ class ReviewViewset(viewsets.ModelViewSet):
                 'products': product.id,  # Single product ID for ForeignKey
                 'name': name,
                 'rating': request.data.get('rating'),
-                'image': request.data.get('image', None),
+                'image': request.FILES.get('image', None),  # Image ফাইলটি request.FILES থেকে নেবে
                 'body': request.data.get('body', '')
             }
 
@@ -341,3 +253,7 @@ class ReviewViewset(viewsets.ModelViewSet):
             return Response("Review added successfully.", status=status.HTTP_201_CREATED)
         except Account.DoesNotExist:
             return Response("Unknown Account Holder", status=status.HTTP_404_NOT_FOUND)
+    
+    # Perform Create function override
+    def perform_create(self, serializer, name, products):
+        serializer.save(reviewer=self.request.user, name=name, products=products)
