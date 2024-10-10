@@ -219,47 +219,50 @@ class ReviewViewset(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='add_review')
     def add_review(self, request, id):
         # Get the product instance
+        print("id",id)
         try:
             product = Product.objects.get(id=id)
+            print(product)
         except Product.DoesNotExist:
-            return Response("Product does not exist.", status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
         # Check if a review already exists for this product by the current user
         review_exists = Review.objects.filter(products=product, reviewer=request.user).exists()
         if review_exists:
-            return Response("This product review already exists.", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "This product review already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Get the account of the user
         try:
             account = Account.objects.get(user=request.user)
+            print(account)
             name = f"{account.user.first_name} {account.user.last_name}"
-
-            # Handle image upload to Cloudinary
-            image_url = None
-            image_file = request.FILES.get('image', None)
-            if image_file:
-                cloudinary_response = cloudinary.uploader.upload(image_file)
-                image_url = cloudinary_response['secure_url']  # Get the secure URL from Cloudinary
+            rating=request.data.get('rating')
+            body=request.data.get('body', '') 
+            # Retrieve image URL from request
+            image_url = request.data.get("image")
+            print(image_url,rating,body)
+            if not image_url:
+                return Response({"error": "image_url not found"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Create the review instance with all fields
             review_data = {
                 'products': product.id,
                 'name': name,
-                'rating': request.data.get('rating'),
-                'image': image_url,  # Cloudinary থেকে প্রাপ্ত URL
-                'body': request.data.get('body', '')
+                'rating':rating ,
+                'image': image_url,  # Image URL
+                'body':body  # Default to empty string if not provided
             }
 
             # Create and validate the serializer
             serializer = self.get_serializer(data=review_data)
             serializer.is_valid(raise_exception=True)
 
-            # Save the review using perform_create with additional fields
+            # Save the review
             self.perform_create(serializer, name=name, products=product)
 
-            return Response("Review added successfully.", status=status.HTTP_201_CREATED)
+            return Response({"success": "Review added successfully."}, status=status.HTTP_201_CREATED)
         except Account.DoesNotExist:
-            return Response("Unknown Account Holder", status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Unknown Account Holder"}, status=status.HTTP_404_NOT_FOUND)
 
     # Perform Create function override
     def perform_create(self, serializer, name, products):
