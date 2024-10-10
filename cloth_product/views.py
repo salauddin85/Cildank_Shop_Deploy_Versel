@@ -215,6 +215,22 @@ class WishlistViewset(viewsets.ModelViewSet):
 class ReviewViewset(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     queryset = Review.objects.all()
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'id'
+    
+    @action(detail=False, methods=['get'], url_path='reviews_by_product')
+    def reviews_by_product(self, request, product_id):
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        reviews = Review.objects.filter(products=product)
+        serializer = self.get_serializer(reviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
 
     @action(detail=False, methods=['post'], url_path='add_review')
     def add_review(self, request, id):
