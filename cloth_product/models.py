@@ -25,7 +25,7 @@ class Product(models.Model):
 class Wishlist(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE)
     products = models.ManyToManyField(Product, blank=True)
-   
+    
     def __str__(self) -> str:
         return f"{self.user.first_name}{self.user.last_name} "
 

@@ -174,8 +174,10 @@ class WishlistViewset(viewsets.ModelViewSet):
         if not Wishlist.objects.filter(user=user).exists():
             serializer.save(user=user)
 
+
+
     @action(detail=False, methods=['post'], url_path=r'add_product/(?P<product_id>\d+)')
-    def add_product(self, request, product_id=None):
+    def add_product(self, request,quantity, product_id=None):
         user = request.user
         wishlist, created = Wishlist.objects.get_or_create(user=user)
         
@@ -183,14 +185,18 @@ class WishlistViewset(viewsets.ModelViewSet):
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
             return Response({'error': 'Product does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-        if product.quantity>0:
-            if product in wishlist.products.all():
-                return Response({'status': 'Product already in wishlist.'}, status=status.HTTP_200_OK)
-            
-            wishlist.products.add(product)
-            return Response({'status': 'Product added to wishlist.'}, status=status.HTTP_200_OK)
-        else:
-            return Response("Product quantity not available")
+        
+        if product in wishlist.products.all():
+            return Response({'error': 'Product already in wishlist.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+        product.quantity=quantity
+        product.save()
+        wishlist.products.add(product)
+        return Response({'status': 'Product added to wishlist.'}, status=status.HTTP_200_OK)
+
+
+
+      
+        
     @action(detail=False, methods=['post'], url_path=r'remove_product/(?P<product_id>\d+)')
     def remove_product(self, request, product_id=None):
         user = request.user

@@ -73,55 +73,14 @@ class PurchaseProductView(APIView):
 
 
 
-# class PurchaseCartView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request,price):
-        
-#         try:
-#             requested_user = Account.objects.get(user=request.user)
-#         except Account.DoesNotExist:
-#             return Response({'error': "No Account Match"}, status=status.HTTP_400_BAD_REQUEST)
-
-       
-#         print(f"Requested User: {requested_user}")
-       
-
-#         # Check if user is authenticated
-#         if not request.user.is_authenticated:
-#             raise PermissionDenied("User is not authenticated")
-#         price = Decimal(price)
-
-#         if requested_user.balance >= price:
-#             requested_user.balance-=price
-#             requested_user.save()
-            
-
-#             # Email Part
-#             email_subject = "Purchase Confirmation"
-#             email_body = render_to_string("cartpurchase_email.html", {
-#                 'user': request.user,
-#                 'balance': requested_user.balance
-#             })
-#             email = EmailMultiAlternatives(email_subject, '', to=[request.user.email])
-#             email.attach_alternative(email_body, 'text/html')
-#             email.send()
-
-#             # Create purchase record
-#             PurchaseCartModel.objects.create(
-#                 user=request.user,
-                
-
-#             )
-#             return Response({'success': "Purchase completed successfully"}, status=status.HTTP_200_OK)
-#         else:
-#             return Response({'error': "Insufficient balance or product quantity"}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class PurchaseProductallView(viewsets.ModelViewSet):
     queryset = PurchaseModel.objects.all()
     serializer_class =PurchaseProductSerialaizer
+
+
+
 
 
 
@@ -161,25 +120,27 @@ class PurchaseCartView(APIView):
             requested_user.balance -= price
             requested_user.save()
             
-           
-            email_subject = "Purchase Confirmation"
-            email_body = render_to_string("cartpurchase_email.html", {
-                'user': request.user,
-                'balance': requested_user.balance,
-               
-            })
-            email = EmailMultiAlternatives(email_subject, '', to=[request.user.email])
-            email.attach_alternative(email_body, 'text/html')
-            email.send()
+            email_product=[]
+            
             for id in product_ids:
                 current_product= Product.objects.get(id=id)
-            
+                email_product.append(current_product)
                 purchase = PurchaseModel.objects.create(
                     user=request.user,
                     product = current_product
                 )
                 purchase.save()
+            email_subject = "Purchase Confirmation"
+            email_body = render_to_string("cartpurchase_email.html", {
+                'user': request.user,
+                'balance': requested_user.balance,
+                'products':email_product,
+                'total_price':price
                
+            })
+            email = EmailMultiAlternatives(email_subject, '', to=[request.user.email])
+            email.attach_alternative(email_body, 'text/html')
+            email.send()   
 
             return Response({'success': "Purchase completed successfully"}, status=status.HTTP_200_OK)
         else:

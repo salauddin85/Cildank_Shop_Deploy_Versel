@@ -1,7 +1,11 @@
+<h3>Hello {{ user.first_name }} {{ user.last_name }}</h3>
+<p>Your purchase request has been successfully completed. Your purchased products are:</p>
+<ul>
+  {% for product in products %}
+    <li>Product Name: <b>{{ product.name }}-</b> Product Price <b>{{product.price}} -</b> Product Size: <b>{{product.size}} -</b> Product Color : <b>{{product.color}} -</b> </b> Quantity:<b>{{ product.quantity }}</b></li>
+  {% endfor %}
+  <li>Total Price : <b>{{total_price}}</b></li>
 
-
-<h3>Hello {{user.first_name}} {{user.last_name}}</h3>
-
-<p>Your Purchase request has been successfully completed. After Purchases Products your total amount is <b>{{balance}}</b></p>
-
-<p>Thanks for with us <b>Cildank</b></p>
+</ul>
+<p>After purchasing these products, your total amount is <b>{{ balance }}</b>.</p>
+<p>Thanks for being with us at <b>Cildank</b>.</p>
