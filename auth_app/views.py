@@ -104,7 +104,7 @@ class AccountView(viewsets.ModelViewSet):
     serializer_class = serializers.AccountSerializer
     permission_classes=[IsAuthenticated]
     def get_queryset(self):
-        # শুধুমাত্র লগ-ইন করা ব্যবহারকারীর অ্যাকাউন্ট ফেরত দেয়
+        # just login  user can his/her account
         return Account.objects.filter(user=self.request.user)
 
 
