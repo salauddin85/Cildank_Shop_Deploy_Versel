@@ -5,6 +5,8 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from .constraints import SIZE,STAR_CHOICES
 from cloudinary.models import CloudinaryField
+
+
 class Product(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     sub_category = models.ForeignKey(Sub_Category,on_delete=models.CASCADE,null=True,blank=True)

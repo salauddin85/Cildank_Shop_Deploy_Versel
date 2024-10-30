@@ -15,16 +15,16 @@ class PurchaseModel(models.Model):
     def __str__(self) -> str:
         return f'{self.user.first_name} {self.user.last_name} product id: {self.product.pk}'
     
-
-# class PurchaseCartModel(models.Model):
-#     user = models.ForeignKey(User,on_delete=models.CASCADE)
-   
+# models.py
 
 
-# class PurchaseCartModel(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE,null=True,blank=True)
-#     product = models.ForeignKey(Product,on_delete=models.CASCADE,null=True,blank=True)
-    
-#     def __str__(self) -> str:
-#         return f'{self.user.first_name} {self.user.last_name} product id: {self.product.pk}'
-    
+
+class Payment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.DecimalField(decimal_places=2, max_digits=10)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('Completed', 'Completed'), ('Failed', 'Failed')], default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Payment {self.transaction_id} - {self.status}"

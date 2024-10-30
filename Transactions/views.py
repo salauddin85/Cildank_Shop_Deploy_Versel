@@ -28,6 +28,8 @@ class DepositView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             amount = serializer.validated_data['transaction_amount']
+            if amount<0:
+                return Response({"error":"You cannot transaction amount less than 0"})
             try:
                 requested_user = Account.objects.get(user=self.request.user)
             except Account.DoesNotExist:

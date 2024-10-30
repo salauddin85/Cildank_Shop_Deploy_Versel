@@ -1,8 +1,12 @@
+# # serializers.py
+# from rest_framework import serializers
+from .models import PurchaseModel
 # serializers.py
 from rest_framework import serializers
-from .models import PurchaseModel
-
+from .models import Payment
 from cloth_product.serializers import ProductSerializer
+
+
 class PurchaseSerializer(serializers.ModelSerializer):
     # product = ProductSerializer(many=True, read_only=True)
 
@@ -11,16 +15,6 @@ class PurchaseSerializer(serializers.ModelSerializer):
         fields = ['']
         # fields = ['product']
    
-# class PurchaseCartSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = PurchaseCartModel
-#         fields = ['']
-
-
-# class PurchaseCartSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = PurchaseCartModel
-#         fields = ['']  # Serialize the user and products
 
 
 
@@ -31,3 +25,13 @@ class PurchaseProductSerialaizer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseModel
         fields =['id', 'user', 'product']
+
+
+
+
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['id', 'user', 'amount', 'transaction_id', 'status', 'created_at']
