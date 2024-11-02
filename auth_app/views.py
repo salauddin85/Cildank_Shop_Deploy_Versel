@@ -11,11 +11,14 @@ from django.contrib.auth import authenticate, login, logout
 from rest_framework.authtoken.models import Token
 from cloth_product.models import Wishlist  
 from . import serializers
-from rest_framework.permissions import IsAuthenticated
 from .models import Account,ContactUs
 from rest_framework import status
-
+from .permissions import IsAdmin, IsCustomer
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import viewsets
+from rest_framework.permissions import AllowAny
+
+
 
 class UserRegistrationApiView(APIView):
     serializers_class = serializers.UserRegistrationSerialaizer
@@ -59,9 +62,12 @@ def activate(request, token, uid64):
         return redirect('https://salauddin85.github.io/Cildank_Shop/login.html')
         # return redirect("login")
 
+
 class UserLoginApiView(APIView):
+    
+
     def post(self, request):
-        serializer = serializers.UserLoginSerializer(data=self.request.data)
+        serializer = serializers.UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
@@ -69,14 +75,18 @@ class UserLoginApiView(APIView):
 
             if user:
                 token, _ = Token.objects.get_or_create(user=user)
-                print(token)
-                print(_)
-                return Response({'token': token.key, 'user_id': user.id})
+                is_admin = user.is_staff or user.is_superuser
+                print(f"User{user} IS admin:{is_admin}TOken:{token}")
+                return Response({
+                    'token': token.key,
+                    'user_id': user.id,
+                    'is_admin': is_admin,
+                    'username': user.username,  # ইউজারনেম যুক্ত করা হলো
+                    'email': user.email  # ইমেইল যুক্ত করা হলো
+                })
             else:
-                return Response({'error': "invalid Credential"}, status=400)
+                return Response({'error': "Invalid Credentials"}, status=400)
         return Response(serializer.errors, status=400)
-
-
 
 class UserLogoutView(APIView):
     def post(self, request):
@@ -102,16 +112,35 @@ class UserLogoutView(APIView):
 
 class AccountView(viewsets.ModelViewSet):
     serializer_class = serializers.AccountSerializer
-    permission_classes=[IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCustomer]  # শুধুমাত্র customer দেখতে পারে
+
     def get_queryset(self):
-        # just login  user can his/her account
+        # শুধুমাত্র লগইন করা ইউজারের অ্যাকাউন্ট
         return Account.objects.filter(user=self.request.user)
 
+class AdminAccountView(viewsets.ModelViewSet):
+    serializer_class = serializers.AccountSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]  # শুধুমাত্র admin দেখতে পারে
 
+    def get_queryset(self):
+        return Account.objects.all()  # admin সকল ইউজারের অ্যাকাউন্ট দেখতে পাবে
 
 class ContactUsView(viewsets.ModelViewSet):
     queryset = ContactUs.objects.all()
     serializer_class = serializers.ContactUsSerializer
+    permission_classes = [IsAdminUser]  # শুধুমাত্র admin মেসেজগুলো দেখবে
 
+
+class SuperuserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()  # প্রয়োজন অনুযায়ী এটি সীমাবদ্ধ করুন
+    serializer_class = serializers.SuperuserSerializer
+    permission_classes=[IsAdminUser]
     
+    def get_queryset(self):
+        return User.objects.filter(is_staff=True)
     
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response({'message': 'Superuser created successfully.'}, status=status.HTTP_201_CREATED)

@@ -85,26 +85,40 @@ class UserRegistrationSerialaizer(serializers.ModelSerializer):
 
 
 
+class SuperuserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password']
+        extra_kwargs = {'password': {'write_only': True}}  # পাসওয়ার্ড লেখার জন্য শুধুমাত্র
 
-
+    def create(self, validated_data):
+        user = User.objects.create_superuser(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password']
+        )
+        return user
 
 
 
 
 
 class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required = True)
-    password = serializers.CharField(required = True)
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
+    is_admin = serializers.SerializerMethodField()  # নতুন ফিল্ড
 
-
-
+    def get_is_admin(self, obj):
+        user = User.objects.get(username=obj['username'])
+        print(f"user{user}")
+        return user.is_staff or user.is_superuser  # True হলে admin, False হলে normal user
 
 
 class AccountSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     class Meta:
         model = Account
-        fields = ['user_name', 'account_no', 'balance', 'created_on']
+        fields = ['id','user_name', 'account_no', 'balance', 'created_on']
 
        
 

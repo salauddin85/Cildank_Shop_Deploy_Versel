@@ -2,13 +2,13 @@ import requests
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Payment, Product
+from .models import Payment, PurchaseModel,CustomerOrder
 from .serialaizers import PaymentSerializer
 from django.conf import settings
 import random, string
 from django.contrib.auth.models import User
-from .models import PurchaseModel
-from .serialaizers import PurchaseProductSerialaizer
+from cloth_product.models import Product
+from .serialaizers import PurchaseProductSerialaizer,CustomerOrderSerializer
 from rest_framework import viewsets
 from rest_framework import status
 from cloth_product.models import Wishlist
@@ -22,7 +22,89 @@ from auth_app.models import Account
 from django.shortcuts import render, redirect
 from urllib.parse import urlencode
 from django.http import JsonResponse
+from auth_app.permissions import IsAdmin
+from django.db.models import Sum, Count
+from django.utils import timezone
+from rest_framework.decorators import action
 
+
+class OrderViewset(APIView):
+    permission_classes = [IsAuthenticated]
+
+    # GET - Retrieve order(s)
+    def get(self, request, order_id=None):
+        if order_id:
+            try:
+                order = CustomerOrder.objects.get(id=order_id, user=request.user)
+            except CustomerOrder.DoesNotExist:
+                return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            serializer = CustomerOrderSerializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Admin can view all orders; non-admins view only their own
+        orders = CustomerOrder.objects.all() if request.user.is_staff else CustomerOrder.objects.filter(user=request.user)
+        serializer = CustomerOrderSerializer(orders, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # POST - Create new order(s)
+    def post(self, request):
+        product_ids = request.data.get('product_ids')
+        quantity = request.data.get('quantity')
+        total_price = request.data.get('total_price')
+
+        if not product_ids or not quantity or not total_price:
+            return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            quantity = int(quantity)
+            total_price = float(total_price)
+        except ValueError:
+            return Response({"error": "Quantity and total price must be numbers."}, status=status.HTTP_400_BAD_REQUEST)
+
+        products = Product.objects.filter(id__in=product_ids)
+        if not products.exists():
+            return Response({"error": "No valid products found for provided IDs."}, status=status.HTTP_404_NOT_FOUND)
+
+        if quantity <= 0:
+            return Response({"error": "Quantity must be positive."}, status=status.HTTP_400_BAD_REQUEST)
+
+        orders = [
+            CustomerOrder(user=request.user, product=product, quantity=quantity, total_price=total_price)
+            for product in products
+        ]
+        CustomerOrder.objects.bulk_create(orders)
+
+        return Response({"status": "Orders created successfully."}, status=status.HTTP_201_CREATED)
+
+    # PUT/PATCH - Update an order
+    def put(self, request, order_id=None):
+        return self.update_order(request, order_id)
+
+    def patch(self, request, order_id=None):
+        return self.update_order(request, order_id, partial=True)
+
+    def update_order(self, request, order_id, partial=False):
+        try:
+            order = CustomerOrder.objects.get(id=order_id, user=request.user)
+        except CustomerOrder.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CustomerOrderSerializer(order, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # DELETE - Delete an order
+    def delete(self, request, order_id=None):
+        try:
+            order = CustomerOrder.objects.get(id=order_id, user=request.user)
+            order.delete()
+            return Response({"status": "Order deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        except CustomerOrder.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+#    
 
 class PurchaseProductallView(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -30,8 +112,10 @@ class PurchaseProductallView(viewsets.ModelViewSet):
     serializer_class = PurchaseProductSerialaizer
 
     def get_queryset(self):
+        # if admin show all review otherwise just reqeust.user see his/her review
+        if self.request.user.is_staff:
+            return PurchaseModel.objects.all()
         return PurchaseModel.objects.filter(user=self.request.user)
-
 
 class PaymentDetailsView(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
@@ -39,6 +123,8 @@ class PaymentDetailsView(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if self.request.user.is_staff:
+            return Payment.objects.filter(status="Completed")
         return Payment.objects.filter(user=self.request.user)
 
 
@@ -67,7 +153,7 @@ class SSLCommerzPaymentView(APIView):
             user=request.user,
             amount=amount
         )
-        print(payment.id, "177 number line")
+        # print(payment.id, "177 number line")
 
         # POST request to SSLCommerz API
         tran_id = unique_transaction_id_generator()
@@ -185,3 +271,62 @@ class SSLCommerzPaymentFailView(APIView):
 
         query_string = urlencode(response_data)
         return redirect(f"https://salauddin85.github.io/Cildank_Shop/payment_fail.html?{query_string}")
+
+
+
+
+
+class AdminReportView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        # মোট পেমেন্ট (শুধুমাত্র Completed স্ট্যাটাসের জন্য)
+        total_payment = Payment.objects.filter(status='Completed').aggregate(Sum('amount'))['amount__sum'] or 0
+
+        # মোট বিক্রয় সংখ্যা
+        total_sales_count = PurchaseModel.objects.count()
+
+        # পণ্য ভিত্তিক মোট আয়
+        product_income = (PurchaseModel.objects
+                  .values('product__name', 'product__sub_category__name', 'product__price')
+                  .annotate(total_quantity=Count('product__quantity'), total_income=Sum('product__price'))
+                  .order_by('-total_income'))
+
+        # ১ দিনের মধ্যে বিক্রয়
+        today = timezone.now()
+        total_income_today = Payment.objects.filter(
+            created_at__date=today.date(),
+            status='Completed'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        total_sales_today = PurchaseModel.objects.filter(created_at__date=today.date()).count()
+
+        # ৭ দিনের মধ্যে বিক্রয়
+        seven_days_ago = today - timezone.timedelta(days=7)
+        total_income_last_7_days = Payment.objects.filter(
+            created_at__gte=seven_days_ago,
+            status='Completed'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        total_sales_last_7_days = PurchaseModel.objects.filter(created_at__gte=seven_days_ago).count()
+
+        # ৩০ দিনের মধ্যে বিক্রয়
+        thirty_days_ago = today - timezone.timedelta(days=30)
+        total_income_last_30_days = Payment.objects.filter(
+            created_at__gte=thirty_days_ago,
+            status='Completed'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        total_sales_last_30_days = PurchaseModel.objects.filter(created_at__gte=thirty_days_ago).count()
+
+        report_data = {
+            'total_payment': total_payment,
+           
+            'total_sales_count': total_sales_count,
+            'product_income': list(product_income),
+            'total_income_today': total_income_today,
+            'total_sales_today': total_sales_today,
+            'total_income_last_7_days': total_income_last_7_days,
+            'total_sales_last_7_days': total_sales_last_7_days,
+            'total_income_last_30_days': total_income_last_30_days,
+            'total_sales_last_30_days': total_sales_last_30_days,
+        }
+
+        return Response(report_data)

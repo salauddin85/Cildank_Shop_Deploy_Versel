@@ -34,6 +34,9 @@ import cloudinary
 # SECRET_KEY = 'django-insecure-0j+z#n^nhip@udt7mtd++z@e2l*8r+5nt*2t*c^8mw@!ws%kwe'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# settings.py
+APPEND_SLASH = True
+
 
 DEBUG = True  # ডেভেলপমেন্টের জন্য
 CORS_ALLOW_ALL_ORIGINS = True  # শুধুমাত্র ডেভেলপমেন্টে ব্যবহারের জন্য

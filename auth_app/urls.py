@@ -1,9 +1,12 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
 from .import views
-from  .views import  UserRegistrationApiView,UserLoginApiView,activate,UserLogoutView,AccountView,ContactUsView
+from  .views import  UserRegistrationApiView,UserLoginApiView,activate,UserLogoutView,AccountView,ContactUsView,AdminAccountView,SuperuserViewSet
 router = DefaultRouter() # amader router
+router.register(r'superusers', SuperuserViewSet, basename='superuser')
+
 router.register('account',AccountView, basename='account')
+router.register('admin-account', AdminAccountView, basename='admin-account')  # admin-specific view
 router.register('contactus',ContactUsView, basename='contactus')
 
 urlpatterns = [
@@ -12,5 +15,5 @@ urlpatterns = [
     path('login/', UserLoginApiView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('active/<uid64>/<token>/', views.activate, name = 'activate'),
-   
+    # path('superusercreate/',SuperuserCreateView.as_view(),name="superusercreate")
 ]

@@ -17,7 +17,10 @@ class Product(models.Model):
     quantity = models.IntegerField()
     description = models.TextField()
     size = models.CharField(max_length=100,null=True,blank=True,choices=SIZE)
+    low_stock_threshold = models.IntegerField(default=10)
     
+    def is_low_stock(self):
+        return self.quantity <= self.low_stock_threshold  # Check if stock is low
     
 
     
@@ -25,13 +28,15 @@ class Product(models.Model):
         return f" Product : {self.name} , Category: {self.sub_category.name}"
 
 class Wishlist(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     
-    def __str__(self) -> str:
-        return f"{self.user.first_name}{self.user.last_name} "
+class CoustomerWishlistProduct(models.Model):
+    wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE,related_name='wishlist_products')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
 
-
+    def __str__(self):
+        return f"{self.wishlist.user.first_name}'s Wishlist - {self.product.name} (Quantity: {self.quantity})"
 
 
 class Review(models.Model):

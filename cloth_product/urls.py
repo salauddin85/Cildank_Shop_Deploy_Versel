@@ -18,9 +18,13 @@ urlpatterns = [
     path('sorted_by_sub_category/<str:category>/', ProductViewset.as_view({'get': 'sorted_by_sub_category'}), name='sorted-by-sub-category'),
     path('sorted_by_color/<str:color>/', ProductViewset.as_view({'get': 'sorted_by_color'}), name='sorted-by-color'),
     path('sorted_by_price/', ProductViewset.as_view({'get': 'sorted_by_price'}), name='sorted-by-price'),
+    path('search_product/<str:search>/',ProductViewset.as_view({'get':'sorted_by_search'}),name="sorted_by_search"),
+    path('low_stock_products/',ProductViewset.as_view({'get':'low_stock'}),name="low_stock"),
+    # Wishlist releted
     path('wishlist/add_product/<int:product_id>/<int:quantity>/', WishlistViewset.as_view({'post': 'add_product'}), name='add-product-to-wishlist'),
     path('wishlist/remove_product/<int:product_id>/', WishlistViewset.as_view({'post': 'remove_product'}), name='remove-product-from-wish'),
-    path('add_review/<int:id>',ReviewViewset.as_view({'post':'add_review'}),name="add_review"),
-    path('reviews_by_product/<int:product_id>',ReviewViewset.as_view({'get':'reviews_by_product'}),name="reviwes_by_product"),
-    path('search_product/<str:search>/',ProductViewset.as_view({'get':'sorted_by_search'}),name="sorted_by_search"),
+    # Review Releted
+    path('add_review/<int:id>/',ReviewViewset.as_view({'post':'add_review'}),name="add_review"),
+    path('reviews_by_product/<int:product_id>/',ReviewViewset.as_view({'get':'reviews_by_product'}),name="reviwes_by_product"),
+    path('delete_review/<int:id>/',ReviewViewset.as_view({'delete':'delete_review'}),name="delete_review_by_admin"),
 ]

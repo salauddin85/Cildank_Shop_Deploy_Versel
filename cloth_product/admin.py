@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from .models import Product,Review,Wishlist
+from .models import Product,Review
 from .constraints import SIZE
 
 # class ProductAdminForm(forms.ModelForm):
@@ -16,13 +16,7 @@ from .constraints import SIZE
 
 
 
-
-
-
-
-
-
 admin.site.register(Product)
 
 admin.site.register(Review)
-admin.site.register(Wishlist)
+# admin.site.register(Wishlist)
