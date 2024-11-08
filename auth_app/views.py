@@ -118,12 +118,20 @@ class AccountView(viewsets.ModelViewSet):
         # শুধুমাত্র লগইন করা ইউজারের অ্যাকাউন্ট
         return Account.objects.filter(user=self.request.user)
 
+
+
+
+
 class AdminAccountView(viewsets.ModelViewSet):
     serializer_class = serializers.AccountSerializer
     permission_classes = [IsAuthenticated, IsAdmin]  # শুধুমাত্র admin দেখতে পারে
 
     def get_queryset(self):
-        return Account.objects.all()  # admin সকল ইউজারের অ্যাকাউন্ট দেখতে পাবে
+        # সমস্ত লগ ইন করা ইউজারদের অ্যাকাউন্ট দেখাচ্ছে
+        return Account.objects.filter(user__in=User.objects.filter(is_active=True))
+
+
+
 
 class ContactUsView(viewsets.ModelViewSet):
     queryset = ContactUs.objects.all()

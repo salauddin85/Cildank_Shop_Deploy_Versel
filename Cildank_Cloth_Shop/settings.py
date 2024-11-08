@@ -109,6 +109,13 @@ WSGI_APPLICATION = 'Cildank_Cloth_Shop.wsgi.app'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+#         'LOCATION': 'product_cache_space',  # এখানে আপনার পছন্দমত নাম লিখতে পারেন
+#         'TIMEOUT': 604800,  # 7 দিন
+#     }
+# }
 
 
 DATABASES = {

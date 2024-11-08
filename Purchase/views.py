@@ -22,16 +22,19 @@ from auth_app.models import Account
 from django.shortcuts import render, redirect
 from urllib.parse import urlencode
 from django.http import JsonResponse
-from auth_app.permissions import IsAdmin
+from auth_app.permissions import IsAdmin,IsCustomer
 from django.db.models import Sum, Count
 from django.utils import timezone
 from rest_framework.decorators import action
+from django.db.models import F
+from cloth_product.models import Review
 
 
 class OrderViewset(APIView):
-    permission_classes = [IsAuthenticated]
+    # Temporary permission for testing (to isolate 403 error)
+    permission_classes = [IsAuthenticated] 
 
-    # GET - Retrieve order(s)
+    # GET - Retrieve orders or a specific order by ID
     def get(self, request, order_id=None):
         if order_id:
             try:
@@ -41,17 +44,18 @@ class OrderViewset(APIView):
             serializer = CustomerOrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_200_OK)
         
-        # Admin can view all orders; non-admins view only their own
+        # Admins see all orders; others see only their own
         orders = CustomerOrder.objects.all() if request.user.is_staff else CustomerOrder.objects.filter(user=request.user)
         serializer = CustomerOrderSerializer(orders, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # POST - Create new order(s)
+    # POST - Create new orders
     def post(self, request):
         product_ids = request.data.get('product_ids')
         quantity = request.data.get('quantity')
         total_price = request.data.get('total_price')
 
+        # Input validation
         if not product_ids or not quantity or not total_price:
             return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -73,29 +77,44 @@ class OrderViewset(APIView):
             for product in products
         ]
         CustomerOrder.objects.bulk_create(orders)
-
         return Response({"status": "Orders created successfully."}, status=status.HTTP_201_CREATED)
 
-    # PUT/PATCH - Update an order
+    # PUT/PATCH - Update an order by ID
     def put(self, request, order_id=None):
         return self.update_order(request, order_id)
 
     def patch(self, request, order_id=None):
+        # status=request.data.get("status")
+
+        
         return self.update_order(request, order_id, partial=True)
 
     def update_order(self, request, order_id, partial=False):
+        status=request.data.get("status")
+        print("User:", request.user)  # Log user information
+        print("User is staff:", request.user.is_staff)  # Check if user is an admin
+
         try:
-            order = CustomerOrder.objects.get(id=order_id, user=request.user)
+            order = CustomerOrder.objects.get(id=order_id)
+            print(f"order{order}")
         except CustomerOrder.DoesNotExist:
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Check if the user is the owner of the order or a staff member
+        if order.user != request.user and not request.user.is_staff:
+            return Response({"error": "You do not have permission to update this order."}, status=status.HTTP_403_FORBIDDEN)
+        print("102 nubmer line")
+        status_value = request.data.get("status")
+        if status_value and status_value not in ["Completed", "Canceled", "Processing"]:
+            return Response({"error": "Invalid status value. Only 'Completed', 'Cancelled', or 'Processing' are allowed."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = CustomerOrderSerializer(order, data=request.data, partial=partial)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            print(serializer.data)
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # DELETE - Delete an order
+    # DELETE - Delete an order by ID
     def delete(self, request, order_id=None):
         try:
             order = CustomerOrder.objects.get(id=order_id, user=request.user)
@@ -103,7 +122,6 @@ class OrderViewset(APIView):
             return Response({"status": "Order deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         except CustomerOrder.DoesNotExist:
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-
 #    
 
 class PurchaseProductallView(viewsets.ModelViewSet):
@@ -282,7 +300,18 @@ class AdminReportView(APIView):
     def get(self, request):
         # মোট পেমেন্ট (শুধুমাত্র Completed স্ট্যাটাসের জন্য)
         total_payment = Payment.objects.filter(status='Completed').aggregate(Sum('amount'))['amount__sum'] or 0
-
+        # Assume `Product` is the model where you want to count the items
+        low_stock_count = Product.objects.filter(quantity__lte=F('low_stock_threshold')).count()
+        # total_review
+        total_review=Review.objects.all().count()
+        # total_loggdin customers
+        total_loogedin_customer =Account.objects.filter(user__in=User.objects.filter(is_active=True)).count()
+        # total_order
+        total_order=CustomerOrder.objects.all().count()
+        # order_completed
+        order_completed=CustomerOrder.objects.filter(status="Completed").count()
+        order_canceled=CustomerOrder.objects.filter(status="Canceled").count()
+        order_pending=CustomerOrder.objects.filter(status="Processing").count()
         # মোট বিক্রয় সংখ্যা
         total_sales_count = PurchaseModel.objects.count()
 
@@ -322,11 +351,18 @@ class AdminReportView(APIView):
             'total_sales_count': total_sales_count,
             'product_income': list(product_income),
             'total_income_today': total_income_today,
+            'low_stock_products': low_stock_count,
             'total_sales_today': total_sales_today,
             'total_income_last_7_days': total_income_last_7_days,
             'total_sales_last_7_days': total_sales_last_7_days,
             'total_income_last_30_days': total_income_last_30_days,
             'total_sales_last_30_days': total_sales_last_30_days,
+            'total_review':total_review,
+            'total_loogedin_customer':total_loogedin_customer,
+            'total_order': total_order,
+            'order_completed': order_completed,
+            'order_canceled': order_canceled,
+            'order_pending': order_pending,
         }
 
         return Response(report_data)

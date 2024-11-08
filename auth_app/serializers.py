@@ -116,9 +116,10 @@ class UserLoginSerializer(serializers.Serializer):
 
 class AccountSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
     class Meta:
         model = Account
-        fields = ['id','user_name', 'account_no', 'balance', 'created_on']
+        fields = ['id','user_name','user_email' ,'account_no', 'balance', 'created_on']
 
        
 

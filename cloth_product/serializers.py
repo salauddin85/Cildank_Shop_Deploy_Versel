@@ -5,18 +5,31 @@ from .constraints import STAR_CHOICES,SIZE
 
 from rest_framework import serializers
 from .models import Product,CoustomerWishlistProduct
-
+from .models import Sub_Category
 
 class ProductSerializer(serializers.ModelSerializer):
-    sub_category = serializers.CharField(source='sub_category.name')
+    # Admin এর জন্য PrimaryKeyRelatedField ব্যবহার করা
+    sub_category = serializers.PrimaryKeyRelatedField(queryset=Sub_Category.objects.all(), required=False)
+    
+    # User এর জন্য CharField ব্যবহার করা
+    sub_category_name = serializers.CharField(source='sub_category.name', read_only=True)
+    
     is_low_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'sub_category', 'image', 'price', 'quantity', 'description', 'size', 'color', 'is_low_stock']
+        fields = ['id', 'name', 'sub_category', 'sub_category_name', 'image', 'price', 'quantity', 'description', 'size', 'color', 'is_low_stock', 'low_stock_threshold']
 
     def get_is_low_stock(self, obj):
         return obj.is_low_stock()
+
+    # perform_create এ `sub_category` সঠিকভাবে হ্যান্ডেল করা
+    def perform_create(self, serializer):
+        if 'sub_category' in self.context['request'].data:
+            sub_category = Sub_Category.objects.get(id=self.context['request'].data['sub_category'])
+            serializer.save(user=self.context['request'].user, sub_category=sub_category)
+        else:
+            serializer.save(user=self.context['request'].user)
 
 
 class WishlistProductSerializer(serializers.ModelSerializer):

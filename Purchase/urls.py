@@ -20,7 +20,7 @@ urlpatterns = [
     path('payment/initiate/', SSLCommerzPaymentView.as_view(), name='payment_initiate'),
     path('payment/success/<str:tran_id>/<int:user_id>/', SSLCommerzPaymentSuccessView.as_view(), name='payment_success'),
     path('payment/fail/<str:tran_id>/<int:user_id>/', SSLCommerzPaymentFailView.as_view(), name='payment_fail'),
-    path('AdminReportView/', AdminReportView.as_view(), name='AdminReport'),
+    path('adminReportView/', AdminReportView.as_view(), name='AdminReport'),
     path('order/', OrderViewset.as_view(), name='order-list'),  # GET and POST for listing and creating orders
     path('order/<int:order_id>/', OrderViewset.as_view(), name='order-detail'),  # GET, PUT, PATCH, DELETE for a specific order
 ]
