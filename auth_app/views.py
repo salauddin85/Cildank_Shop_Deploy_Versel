@@ -152,3 +152,17 @@ class SuperuserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response({'message': 'Superuser created successfully.'}, status=status.HTTP_201_CREATED)
+
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    serializer_class = serializers.ProfileSerializer
+    permission_classes = [IsAuthenticated]  # Only authenticated users can access
+
+    def get_queryset(self):
+        # If the logged-in user is admin, show only admin's data (current logged-in admin)
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            # Return only the logged-in admin user
+            return User.objects.filter(id=self.request.user.id)
+        else:
+            # If normal user, show only their own profile data
+            return User.objects.filter(id=self.request.user.id)

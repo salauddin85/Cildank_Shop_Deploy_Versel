@@ -123,9 +123,38 @@ class AccountSerializer(serializers.ModelSerializer):
 
        
 
+class ProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.get_username", read_only=True)
+    full_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    # password = serializers.CharField(write_only=True)  # Password field will be for admin only
 
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'full_name', 'first_name', 'last_name', 'user_email']
 
-
+    def to_representation(self, instance):
+        # If the user is admin or superuser, return only username, email, and password
+        if self.context['request'].user.is_staff or self.context['request'].user.is_superuser:
+            return {
+                'id':instance.id,
+                'username': instance.username,
+                'user_email': instance.email,
+                # 'password': instance.password  # Show password for admin
+            }
+        else:
+            # If normal user, return full user data
+            return {
+                'id':instance.id,
+                'username': instance.username,
+                'user_email': instance.email,
+                'full_name': instance.first_name+instance.last_name,
+                'first_name': instance.first_name,
+                'last_name': instance.last_name,
+                # 'password': instance.password  # Show password for admin
+            }
 
 class ContactUsSerializer(serializers.ModelSerializer):
     class Meta:
