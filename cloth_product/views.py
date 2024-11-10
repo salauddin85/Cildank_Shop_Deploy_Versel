@@ -214,16 +214,16 @@ class WishlistViewset(viewsets.ModelViewSet):
 class ReviewViewset(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     queryset = Review.objects.all()
-    permission_classes = [IsAuthenticatedOrReadOnly,IsAdmin]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'id'
 
     
 
     def get_queryset(self):
         # if admin show all review otherwise just reqeust.user see his/her review
-        if self.request.user.is_staff:
+        # if self.request.user.is_staff or self.request.user:
             return Review.objects.all()
-        return Review.objects.filter(reviewer=self.request.user)
+        # return Review.objects.filter(reviewer=self.request.user)
     
     @action(detail=False, methods=['get'], url_path='reviews_by_product')
     def reviews_by_product(self, request, product_id):
